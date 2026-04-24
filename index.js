@@ -2,6 +2,7 @@ const TelegramBot = require('node-telegram-bot-api');
 const TOKEN = '8771287795:AAGxcYP2Z0X8yFp6G-E6DEIbbl4B7FKdq6o';
 const АДМИН_ID = '7541394049';
 const выбранныйДень = {};
+let записьОткрыта = true;
 const bot = new TelegramBot(TOKEN, { polling: true });
 
 function главноеМеню(chatId) {
@@ -17,9 +18,26 @@ function главноеМеню(chatId) {
     });
 }
 
+function админМеню(chatId) {
+    bot.sendMessage(chatId, записьОткрыта ? '✅ Запись открыта' : '⛔ Запись закрыта', {
+        reply_markup: {
+            keyboard: [
+                [записьОткрыта ? '⛔ Закрыть запись' : '✅ Открыть запись']
+            ],
+            resize_keyboard: true
+        }
+    });
+}
+
 bot.onText(/\/start/, (msg) => {
-    bot.sendMessage(msg.chat.id, 'Привет! 💅 Я бот Ярославы.');
-    главноеМеню(msg.chat.id);
+    const chatId = msg.chat.id;
+    if (chatId.toString() === АДМИН_ID) {
+        bot.sendMessage(chatId, 'Привет, Ярослава! 👑');
+        админМеню(chatId);
+    } else {
+        bot.sendMessage(chatId, 'Привет! 💅 Я бот Ярославы.');
+        главноеМеню(chatId);
+    }
 });
 
 bot.on('message', (msg) => {
@@ -27,9 +45,26 @@ bot.on('message', (msg) => {
     const chatId = msg.chat.id;
     const текст = msg.text;
 
+    if (chatId.toString() === АДМИН_ID) {
+        if (текст === '⛔ Закрыть запись') {
+            записьОткрыта = false;
+            bot.sendMessage(chatId, '⛔ Запись закрыта! Клиенты не смогут записаться.');
+            админМеню(chatId);
+        } else if (текст === '✅ Открыть запись') {
+            записьОткрыта = true;
+            bot.sendMessage(chatId, '✅ Запись открыта! Клиенты снова могут записываться.');
+            админМеню(chatId);
+        }
+        return;
+    }
+
     if (текст === '💅 Услуги и цены') {
         bot.sendMessage(chatId, '💅 Услуги и цены:\n\n• Маникюр — 300 грн\n• Маникюр + покрытие — 500 грн\n• Педикюр — 400 грн\n• Снятие покрытия — 100 грн');
     } else if (текст === '📅 Записаться') {
+        if (!записьОткрыта) {
+            bot.sendMessage(chatId, '😔 К сожалению запись временно закрыта.\n\nПозвоните напрямую: +380 97 197 73 05');
+            return;
+        }
         bot.sendMessage(chatId, 'Выбери удобный день:', {
             reply_markup: {
                 keyboard: [
