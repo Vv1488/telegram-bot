@@ -2,6 +2,7 @@ const TelegramBot = require('node-telegram-bot-api');
 
 const TOKEN = '8771287795:AAGxcYP2Z0X8yFp6G-E6DEIbbl4B7FKdq6o';
 const bot = new TelegramBot(TOKEN, { polling: true });
+const АДМИН_ID = '7541394049';
 
 bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
@@ -47,6 +48,7 @@ bot.on('message', (msg) => {
     });
 } else if (['10:00','12:00','14:00','16:00','18:00'].includes(текст)) {
     bot.sendMessage(chatId, '✅ Записала! Ярослава свяжется для подтверждения.\n📞 Телефон: +380 97 197 73 05');
+    bot.sendMessage(АДМИН_ID, '📅 Новая запись!\nКлиент записался на время: ' + текст);
     } else if (текст === '💆 Уход за ногтями') {
         bot.sendMessage(chatId, '💆 Советы по уходу:\n\n• Не мочить ногти 2 часа после покрытия\n• Используй масло для кутикулы каждый день\n• Не открывай банки ногтями 😄\n• Носи перчатки при уборке');
     } else if (текст === '📍 Адрес') {
