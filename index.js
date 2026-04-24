@@ -1,7 +1,7 @@
 const TelegramBot = require('node-telegram-bot-api');
-const TOKEN = '8771287795:AAGxcYP2Z0X8yFp6G-E6DEIbbl4B7FKdq6o
-';
+const TOKEN = '8771287795:AAGxcYP2Z0X8yFp6G-E6DEIbbl4B7FKdq6o';
 const АДМИН_ID = '7541394049';
+const выбранныйДень = {};
 const bot = new TelegramBot(TOKEN, { polling: true });
 
 function главноеМеню(chatId) {
@@ -41,6 +41,7 @@ bot.on('message', (msg) => {
             }
         });
     } else if (['Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'].includes(текст)) {
+        выбранныйДень[chatId] = текст;
         bot.sendMessage(chatId, 'Выбери удобное время:', {
             reply_markup: {
                 keyboard: [
@@ -53,7 +54,7 @@ bot.on('message', (msg) => {
         });
     } else if (['10:00','12:00','14:00','16:00','18:00'].includes(текст)) {
         bot.sendMessage(chatId, '✅ Записала! Ярослава свяжется для подтверждения.\n📞 Телефон: +380 97 197 73 05');
-        bot.sendMessage(АДМИН_ID, '📅 Новая запись!\nКлиент записался на время: ' + текст);
+        bot.sendMessage(АДМИН_ID, '📅 Новая запись!\nКлиент записался на: ' + выбранныйДень[chatId] + ' в ' + текст);
         главноеМеню(chatId);
     } else if (текст === '💆 Уход за ногтями') {
         bot.sendMessage(chatId, '💆 Советы по уходу:\n\n• Не мочить ногти 2 часа после покрытия\n• Используй масло для кутикулы каждый день\n• Не открывай банки ногтями 😄\n• Носи перчатки при уборке');
