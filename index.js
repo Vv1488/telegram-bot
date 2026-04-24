@@ -1,5 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api');
-const TOKEN = '8771287795:AAGxcYP2Z0X8yFp6G-E6DEIbbl4B7FKdq6o';
+const TOKEN = '8771287795:AAGxcYP2Z0X8yFp6G-E6DEIbbl4B7FKdq6o
+';
 const АДМИН_ID = '7541394049';
 const bot = new TelegramBot(TOKEN, { polling: true });
 
