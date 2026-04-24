@@ -4,7 +4,8 @@ const TOKEN = '8771287795:AAGxcYP2Z0X8yFp6G-E6DEIbbl4B7FKdq6o';
 const bot = new TelegramBot(TOKEN, { polling: true });
 const АДМИН_ID = '7541394049';
 
-bot.onText(/\/start/, (msg) => {
+bot.on('message', (msg) => {
+    if (msg.text && msg.text.startsWith('/')) return;
     const chatId = msg.chat.id;
     bot.sendMessage(chatId, 'Привет! 💅 Я бот Ярославы. Выбери что тебя интересует:', {
         reply_markup: {
