@@ -4,7 +4,11 @@ const АДМИН_ID = '7541394049';
 const выбранныйДень = {};
 const выбранноеВремя = {};
 const ожидаетИмя = {};
+const ожидаетОтзыв = {};
+const ожидаетРассылку = {};
 const записи = {};
+const всеКлиенты = new Set();
+const всеЗаписи = [];
 const bot = new TelegramBot(TOKEN, { polling: true });
 
 function главноеМеню(chatId) {
@@ -13,7 +17,18 @@ function главноеМеню(chatId) {
             keyboard: [
                 ['💅 Услуги и цены', '📅 Записаться'],
                 ['💆 Уход за ногтями', '📍 Адрес'],
-                ['📞 Контакты']
+                ['📞 Контакты', '⭐ Оставить отзыв']
+            ],
+            resize_keyboard: true
+        }
+    });
+}
+
+function админМеню(chatId) {
+    bot.sendMessage(chatId, 'Панель управления 👑', {
+        reply_markup: {
+            keyboard: [
+                ['📋 Все записи', '📢 Рассылка']
             ],
             resize_keyboard: true
         }
@@ -21,28 +36,95 @@ function главноеМеню(chatId) {
 }
 
 bot.onText(/\/start/, (msg) => {
-    bot.sendMessage(msg.chat.id, 'Привет! 💅 Я бот Ярославы.');
-    главноеМеню(msg.chat.id);
+    const chatId = msg.chat.id;
+    всеКлиенты.add(chatId);
+    if (chatId.toString() === АДМИН_ID) {
+        bot.sendMessage(chatId, 'Привет, Ярослава! 👑');
+        админМеню(chatId);
+    } else {
+        bot.sendMessage(chatId, 'Привет! 💅 Я бот Ярославы.');
+        главноеМеню(chatId);
+    }
+});
+
+bot.onText(/\/записи/, (msg) => {
+    if (msg.chat.id.toString() !== АДМИН_ID) return;
+    if (всеЗаписи.length === 0) {
+        bot.sendMessage(АДМИН_ID, 'Записей пока нет.');
+        return;
+    }
+    let список = '📋 Все записи:\n\n';
+    всеЗаписи.forEach((з, i) => {
+        список += (i+1) + '. ' + з.имя + ' — ' + з.день + ' в ' + з.время + '\n';
+    });
+    bot.sendMessage(АДМИН_ID, список);
 });
 
 bot.on('message', (msg) => {
     if (!msg.text || msg.text.startsWith('/')) return;
     const chatId = msg.chat.id;
     const текст = msg.text;
+    всеКлиенты.add(chatId);
+
+    if (chatId.toString() === АДМИН_ID) {
+        if (текст === '📋 Все записи') {
+            if (всеЗаписи.length === 0) {
+                bot.sendMessage(АДМИН_ID, 'Записей пока нет.');
+                return;
+            }
+            let список = '📋 Все записи:\n\n';
+            всеЗаписи.forEach((з, i) => {
+                список += (i+1) + '. ' + з.имя + ' — ' + з.день + ' в ' + з.время + '\n';
+            });
+            bot.sendMessage(АДМИН_ID, список);
+            return;
+        } else if (текст === '📢 Рассылка') {
+            ожидаетРассылку[АДМИН_ID] = true;
+            bot.sendMessage(АДМИН_ID, 'Напиши сообщение для рассылки всем клиентам:');
+            return;
+        } else if (ожидаетРассылку[АДМИН_ID]) {
+            delete ожидаетРассылку[АДМИН_ID];
+            let отправлено = 0;
+            всеКлиенты.forEach(clientId => {
+                if (clientId.toString() !== АДМИН_ID) {
+                    bot.sendMessage(clientId, '📢 Сообщение от Ярославы:\n\n' + текст);
+                    отправлено++;
+                }
+            });
+            bot.sendMessage(АДМИН_ID, '✅ Рассылка отправлена ' + отправлено + ' клиентам!');
+            return;
+        }
+        return;
+    }
+
+    if (ожидаетОтзыв[chatId]) {
+        delete ожидаетОтзыв[chatId];
+        bot.sendMessage(chatId, '⭐ Спасибо за отзыв! Ярослава обязательно прочитает.');
+        bot.sendMessage(АДМИН_ID, '⭐ Новый отзыв:\n\n' + текст);
+        главноеМеню(chatId);
+        return;
+    }
 
     if (ожидаетИмя[chatId]) {
         const имя = текст;
         delete ожидаетИмя[chatId];
-        
+
         записи[chatId] = {
             имя: имя,
             день: выбранныйДень[chatId],
             время: выбранноеВремя[chatId]
         };
 
+        всеЗаписи.push({
+            имя: имя,
+            день: выбранныйДень[chatId],
+            время: выбранноеВремя[chatId],
+            chatId: chatId
+        });
+
         bot.sendMessage(chatId, '⏳ Твоя заявка отправлена! Ожидай подтверждения от Ярославы.');
-        
-        bot.sendMessage(АДМИН_ID, 
+
+        bot.sendMessage(АДМИН_ID,
             '📅 Новая запись!\n👤 Имя: ' + имя + '\n📅 День: ' + выбранныйДень[chatId] + '\n🕐 Время: ' + выбранноеВремя[chatId], {
             reply_markup: {
                 inline_keyboard: [
@@ -86,6 +168,13 @@ bot.on('message', (msg) => {
         выбранноеВремя[chatId] = текст;
         ожидаетИмя[chatId] = true;
         bot.sendMessage(chatId, 'Как тебя зовут? Напиши своё имя:', {
+            reply_markup: {
+                remove_keyboard: true
+            }
+        });
+    } else if (текст === '⭐ Оставить отзыв') {
+        ожидаетОтзыв[chatId] = true;
+        bot.sendMessage(chatId, 'Напиши свой отзыв — Ярослава обязательно прочитает! 😊', {
             reply_markup: {
                 remove_keyboard: true
             }
