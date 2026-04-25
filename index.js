@@ -4,6 +4,7 @@ const АДМИН_ID = '7541394049';
 const выбранныйДень = {};
 const выбранноеВремя = {};
 const ожидаетИмя = {};
+const записи = {};
 const bot = new TelegramBot(TOKEN, { polling: true });
 
 function главноеМеню(chatId) {
@@ -32,8 +33,26 @@ bot.on('message', (msg) => {
     if (ожидаетИмя[chatId]) {
         const имя = текст;
         delete ожидаетИмя[chatId];
-        bot.sendMessage(chatId, '✅ Записала! Ярослава свяжется для подтверждения.\n📞 Телефон: +380 97 197 73 05');
-        bot.sendMessage(АДМИН_ID, '📅 Новая запись!\n👤 Имя: ' + имя + '\n📅 День: ' + выбранныйДень[chatId] + '\n🕐 Время: ' + выбранноеВремя[chatId]);
+        
+        записи[chatId] = {
+            имя: имя,
+            день: выбранныйДень[chatId],
+            время: выбранноеВремя[chatId]
+        };
+
+        bot.sendMessage(chatId, '⏳ Твоя заявка отправлена! Ожидай подтверждения от Ярославы.');
+        
+        bot.sendMessage(АДМИН_ID, 
+            '📅 Новая запись!\n👤 Имя: ' + имя + '\n📅 День: ' + выбранныйДень[chatId] + '\n🕐 Время: ' + выбранноеВремя[chatId], {
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        { text: '✅ Подтвердить', callback_data: 'confirm_' + chatId },
+                        { text: '❌ Отменить', callback_data: 'cancel_' + chatId }
+                    ]
+                ]
+            }
+        });
         главноеМеню(chatId);
         return;
     }
@@ -79,6 +98,29 @@ bot.on('message', (msg) => {
         bot.sendMessage(chatId, '📞 Телефон: +380 97 197 73 05\n📸 Инстаграм: @__gurova.nail__');
     } else if (текст === '🔙 Главное меню') {
         главноеМеню(chatId);
+    }
+});
+
+bot.on('callback_query', (query) => {
+    const данные = query.data;
+    const clientId = данные.split('_')[1];
+
+    if (данные.startsWith('confirm_')) {
+        const запись = записи[clientId];
+        bot.sendMessage(clientId, '✅ Ярослава подтвердила твою запись!\n📅 ' + запись.день + ' в ' + запись.время + '\n📍 Адрес: ул. Телевизионная 23, Днепр');
+        bot.answerCallbackQuery(query.id, { text: 'Запись подтверждена!' });
+        bot.editMessageReplyMarkup({ inline_keyboard: [] }, {
+            chat_id: АДМИН_ID,
+            message_id: query.message.message_id
+        });
+    } else if (данные.startsWith('cancel_')) {
+        const запись = записи[clientId];
+        bot.sendMessage(clientId, '❌ К сожалению Ярослава не может принять тебя в это время.\nПозвони для уточнения: +380 97 197 73 05');
+        bot.answerCallbackQuery(query.id, { text: 'Запись отменена!' });
+        bot.editMessageReplyMarkup({ inline_keyboard: [] }, {
+            chat_id: АДМИН_ID,
+            message_id: query.message.message_id
+        });
     }
 });
 
