@@ -39,7 +39,7 @@ bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
     всеКлиенты.add(chatId);
     if (chatId.toString() === АДМИН_ID) {
-        bot.sendMessage(chatId, 'Привет, Ярослава! 👑');
+        bot.sendMessage(chatId, 'Здарова, Ярослава! 👑');
         админМеню(chatId);
     } else {
         bot.sendMessage(chatId, 'Привет! 💅 Я бот Ярославы.');
