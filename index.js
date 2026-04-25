@@ -2,6 +2,8 @@ const TelegramBot = require('node-telegram-bot-api');
 const TOKEN = '8771287795:AAGxcYP2Z0X8yFp6G-E6DEIbbl4B7FKdq6o';
 const АДМИН_ID = '7541394049';
 const выбранныйДень = {};
+const выбранноеВремя = {};
+const ожидаетИмя = {};
 const bot = new TelegramBot(TOKEN, { polling: true });
 
 function главноеМеню(chatId) {
@@ -26,6 +28,15 @@ bot.on('message', (msg) => {
     if (!msg.text || msg.text.startsWith('/')) return;
     const chatId = msg.chat.id;
     const текст = msg.text;
+
+    if (ожидаетИмя[chatId]) {
+        const имя = текст;
+        delete ожидаетИмя[chatId];
+        bot.sendMessage(chatId, '✅ Записала! Ярослава свяжется для подтверждения.\n📞 Телефон: +380 97 197 73 05');
+        bot.sendMessage(АДМИН_ID, '📅 Новая запись!\n👤 Имя: ' + имя + '\n📅 День: ' + выбранныйДень[chatId] + '\n🕐 Время: ' + выбранноеВремя[chatId]);
+        главноеМеню(chatId);
+        return;
+    }
 
     if (текст === '💅 Услуги и цены') {
         bot.sendMessage(chatId, '💅 Услуги и цены:\n\n• Маникюр — 300 грн\n• Маникюр + покрытие — 500 грн\n• Педикюр — 400 грн\n• Снятие покрытия — 100 грн');
@@ -53,9 +64,13 @@ bot.on('message', (msg) => {
             }
         });
     } else if (['10:00','12:00','14:00','16:00','18:00'].includes(текст)) {
-        bot.sendMessage(chatId, '✅ Записала! Ярослава свяжется для подтверждения.\n📞 Телефон: +380 97 197 73 05');
-        bot.sendMessage(АДМИН_ID, '📅 Новая запись!\nКлиент записался на: ' + выбранныйДень[chatId] + ' в ' + текст);
-        главноеМеню(chatId);
+        выбранноеВремя[chatId] = текст;
+        ожидаетИмя[chatId] = true;
+        bot.sendMessage(chatId, 'Как тебя зовут? Напиши своё имя:', {
+            reply_markup: {
+                remove_keyboard: true
+            }
+        });
     } else if (текст === '💆 Уход за ногтями') {
         bot.sendMessage(chatId, '💆 Советы по уходу:\n\n• Не мочить ногти 2 часа после покрытия\n• Используй масло для кутикулы каждый день\n• Не открывай банки ногтями 😄\n• Носи перчатки при уборке');
     } else if (текст === '📍 Адрес') {
